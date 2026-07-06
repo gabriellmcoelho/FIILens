@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import { exec } from 'child_process'
 import { promisify } from 'util'
+import { prisma } from '../config/database'
 
 const execAsync = promisify(exec)
 
@@ -79,12 +80,12 @@ export async function dataRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       // Query the most recent update from indicators table
-      const result = await fastify.prisma.indicator.findFirst({
-        orderBy: { updatedAt: 'desc' },
-        select: { updatedAt: true }
+      const result = await prisma.indicator.findFirst({
+        orderBy: { lastUpdate: 'desc' },
+        select: { lastUpdate: true }
       })
       
-      const lastUpdate = result?.updatedAt || null
+      const lastUpdate = result?.lastUpdate || null
       const nextUpdate = lastUpdate 
         ? new Date(lastUpdate.getTime() + 15 * 60 * 1000) // 15 minutes from last update
         : new Date()
