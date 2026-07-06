@@ -76,8 +76,7 @@ Built for the Brazilian Real Estate Investment Funds (FII) market, this platform
 
 # 🌐 Live Demo
 
-**Frontend**: [https://gabrielcoelho.github.io/FIILens/](https://gabrielcoelho.github.io/FIILens/) _(Update with your GitHub username)_  
-**API Docs**: _(Deploy backend to see Swagger UI)_
+**Frontend**: [https://gabrielcoelho.github.io/FIILens/](https://gabrielcoelho.github.io/FIILens/)
 
 > **Note**: This is a portfolio project with sample data. Real market data integration is planned for future phases.
 
@@ -89,7 +88,7 @@ Built for the Brazilian Real Estate Investment Funds (FII) market, this platform
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/YOUR-USERNAME/FIILens.git
+git clone https://github.com/gabriellmcoelho/FIILens.git
 cd FIILens
 
 # 2. Install dependencies and setup
@@ -142,12 +141,6 @@ Multi-dimensional quality assessment with automated scoring:
 - **Validity**: 96% (business rules compliance)
 - **Uniqueness**: 100% (no duplicates)
 - **Timeliness**: 95% (freshness within SLA)
-
-## API Documentation
-
-Fully documented REST API with OpenAPI/Swagger specification.
-
-> **Note**: Add screenshots by running the app and capturing images to add visual appeal to your portfolio.
 
 ---
 
@@ -2468,7 +2461,7 @@ Displays
 ## Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/fiilens.git
+git clone https://github.com/gabriellmcoelho/FIILens.git
 ```
 
 ---
