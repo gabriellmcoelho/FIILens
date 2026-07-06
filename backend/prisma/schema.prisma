@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Fund {
+  id            String   @id @default(uuid())
+  ticker        String   @unique
+  name          String
+  cnpj          String   @unique
+  segment       String
+  manager       String
+  administrator String
+  isin          String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  indicators       Indicator[]
+  historicalPrices HistoricalPrice[]
+  dividends        Dividend[]
+  qualityScores    QualityScore[]
+  metadata         Metadata[]
+  alerts           Alert[]
+
+  @@map("funds")
+}
+
+model Indicator {
+  id             String   @id @default(uuid())
+  fundId         String   @map("fund_id")
+  dividendYield  Float?   @map("dividend_yield")
+  pvp            Float?
+  liquidity      Float?
+  marketCap      Float?   @map("market_cap")
+  netAssetValue  Float?   @map("net_asset_value")
+  vacancy        Float?
+  price          Float?
+  volume         Float?
+  lastUpdate     DateTime @default(now()) @map("last_update")
+
+  fund Fund @relation(fields: [fundId], references: [id], onDelete: Cascade)
+
+  @@map("indicators")
+}
+
+model HistoricalPrice {
+  id     String   @id @default(uuid())
+  fundId String   @map("fund_id")
+  date   DateTime
+  price  Float
+  volume Float?
+
+  fund Fund @relation(fields: [fundId], references: [id], onDelete: Cascade)
+
+  @@unique([fundId, date])
+  @@map("historical_prices")
+}
+
+model Dividend {
+  id          String   @id @default(uuid())
+  fundId      String   @map("fund_id")
+  paymentDate DateTime @map("payment_date")
+  exDate      DateTime @map("ex_date")
+  value       Float
+
+  fund Fund @relation(fields: [fundId], references: [id], onDelete: Cascade)
+
+  @@map("dividends")
+}
+
+model QualityScore {
+  id           String   @id @default(uuid())
+  fundId       String   @map("fund_id")
+  completeness Float
+  consistency  Float
+  accuracy     Float
+  uniqueness   Float
+  validity     Float
+  timeliness   Float
+  overallScore Float    @map("overall_score")
+  measuredAt   DateTime @default(now()) @map("measured_at")
+
+  fund Fund @relation(fields: [fundId], references: [id], onDelete: Cascade)
+
+  @@map("quality_scores")
+}
+
+model Metadata {
+  id                   String   @id @default(uuid())
+  fundId               String?  @map("fund_id")
+  entityType           String   @map("entity_type")
+  entityName           String   @map("entity_name")
+  businessDescription  String   @map("business_description")
+  technicalDescription String?  @map("technical_description")
+  dataOwner            String   @map("data_owner")
+  dataSteward          String   @map("data_steward")
+  source               String
+  refreshFrequency     String   @map("refresh_frequency")
+  classification       String
+  sensitivity          String
+  version              String
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  fund Fund? @relation(fields: [fundId], references: [id], onDelete: Cascade)
+
+  @@map("metadata")
+}
+
+model Glossary {
+  id                 String   @id @default(uuid())
+  term               String   @unique
+  businessDefinition String   @map("business_definition")
+  technicalDetails   String?  @map("technical_details")
+  example            String?
+  category           String
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@map("glossary")
+}
+
+model Alert {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  fundId      String   @map("fund_id")
+  alertType   String   @map("alert_type")
+  condition   String
+  threshold   Float
+  isActive    Boolean  @default(true) @map("is_active")
+  lastTriggered DateTime? @map("last_triggered")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fund Fund @relation(fields: [fundId], references: [id], onDelete: Cascade)
+
+  @@map("alerts")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      String   @default("viewer")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  alerts    Alert[]
+  auditLogs AuditLog[]
+
+  @@map("users")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?  @map("user_id")
+  action      String
+  entityType  String   @map("entity_type")
+  entityId    String?  @map("entity_id")
+  changes     String?  @db.Text
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}

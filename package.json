@@ -1,0 +1,29 @@
+{
+  "name": "fiilens-workspace",
+  "version": "1.0.0",
+  "description": "FIILens - Brazilian FII Data Platform",
+  "scripts": {
+    "install:all": "cd backend && npm install && cd ../frontend && npm install && cd ../analytics && pip3 install -r requirements.txt",
+    "setup": "npm run install:all && cd backend && npm run prisma:generate && npm run prisma:migrate && npm run seed",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "seed": "cd analytics && python3 main.py",
+    "prisma:studio": "cd backend && npm run prisma:studio",
+    "prisma:generate": "cd backend && npm run prisma:generate",
+    "prisma:migrate": "cd backend && npm run prisma:migrate"
+  },
+  "keywords": [
+    "fii",
+    "investment",
+    "data-governance",
+    "dama-dmbok"
+  ],
+  "author": "Gabriel Coelho",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
