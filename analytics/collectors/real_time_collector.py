@@ -100,6 +100,9 @@ class FIIRealTimeCollector:
                 if fii_data['price'] > 0:
                     fii_data['dividendYield'] = self._estimate_dividend_yield(ticker)
                     fii_data['pvp'] = self._estimate_pvp(ticker)
+                    # Estimate market cap based on typical FII size
+                    if fii_data['marketCap'] == 0:
+                        fii_data['marketCap'] = self._estimate_market_cap(ticker, fii_data['price'])
                     
                 return fii_data
             else:
@@ -142,6 +145,26 @@ class FIIRealTimeCollector:
             'PVBI11': 1.01
         }
         return typical_pvp.get(ticker, 1.00)
+    
+    def _estimate_market_cap(self, ticker: str, price: float) -> int:
+        """
+        Estimate market cap based on typical FII size and number of shares
+        In production, this should fetch real data from B3 or fund reports
+        """
+        # Estimated number of shares outstanding (in millions)
+        # Based on typical FII sizes in Brazil
+        estimated_shares = {
+            'HGLG11': 11.0,  # ~11M cotas
+            'KNRI11': 15.0,  # ~15M cotas
+            'XPML11': 35.0,  # ~35M cotas (maior fundo)
+            'VISC11': 18.0,  # ~18M cotas
+            'PVBI11': 22.0   # ~22M cotas
+        }
+        
+        shares = estimated_shares.get(ticker, 10.0) * 1_000_000  # Convert to actual shares
+        market_cap = int(price * shares)
+        
+        return market_cap
     
     def collect_historical_prices(self, ticker: str, days: int = 90) -> List[Dict]:
         """
