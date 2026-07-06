@@ -15,7 +15,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Database connection
-DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://neondb_owner:npg_71rnXEbqQvGV@ep-small-mode-acmvis8n.sa-east-1.aws.neon.tech/neondb?sslmode=require')
+DATABASE_URL = os.getenv('DATABASE_URL')
+
+if not DATABASE_URL:
+    raise ValueError(
+        "DATABASE_URL environment variable is not set. "
+        "Please create a .env file with your database connection string."
+    )
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
