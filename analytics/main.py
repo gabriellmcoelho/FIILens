@@ -7,9 +7,111 @@ import logging
 import sys
 from sqlalchemy import text
 from config import get_db, logger
-from collectors.fii_collector import collect_fii_data, collect_historical_prices, collect_dividends
+from collectors.real_time_collector import get_collector
 from validators.data_validator import validate_data
 from quality.quality_scorer import calculate_quality_scores
+
+# FII tickers to track
+TRACKED_FIIS = ['HGLG11', 'KNRI11', 'XPML11', 'VISC11', 'PVBI11']
+
+def update_real_time_data():
+    """Update FII data from real-time sources"""
+    logger.info("Starting real-time data update...")
+    
+    collector = get_collector()
+    
+    # Collect real-time data
+    fiis_data = collector.collect_fii_data(TRACKED_FIIS)
+    
+    if not fiis_data:
+        logger.error("No data collected from APIs")
+        return
+    
+    # Get database session
+    db = next(get_db())
+    
+    try:
+        for fii_data in fiis_data:
+            ticker = fii_data['ticker']
+            logger.info(f"Updating {ticker}...")
+            
+            # Update or insert fund
+            fund_query = text("""
+                INSERT INTO funds (id, ticker, name, created_at, updated_at)
+                VALUES (gen_random_uuid(), :ticker, :name, NOW(), NOW())
+                ON CONFLICT (ticker) DO UPDATE 
+                SET name = EXCLUDED.name, 
+                    updated_at = NOW()
+                RETURNING id
+            """)
+            
+            result = db.execute(fund_query, {
+                'ticker': ticker,
+                'name': fii_data.get('name', ticker)
+            })
+            
+            fund_id = result.fetchone()[0]
+            
+            # Update indicators
+            indicators_query = text("""
+                INSERT INTO indicators (
+                    id, fund_id, price, dividend_yield, pvp, liquidity,
+                    market_cap, volume, created_at, updated_at
+                )
+                VALUES (
+                    gen_random_uuid(), :fund_id, :price, :dividend_yield, :pvp,
+                    :liquidity, :market_cap, :volume, NOW(), NOW()
+                )
+                ON CONFLICT (fund_id) DO UPDATE SET
+                    price = EXCLUDED.price,
+                    dividend_yield = EXCLUDED.dividend_yield,
+                    pvp = EXCLUDED.pvp,
+                    liquidity = EXCLUDED.liquidity,
+                    market_cap = EXCLUDED.market_cap,
+                    volume = EXCLUDED.volume,
+                    updated_at = NOW()
+            """)
+            
+            db.execute(indicators_query, {
+                'fund_id': fund_id,
+                'price': fii_data.get('price', 0),
+                'dividend_yield': fii_data.get('dividendYield', 0),
+                'pvp': fii_data.get('pvp', 1.0),
+                'liquidity': fii_data.get('volume', 0),
+                'market_cap': fii_data.get('marketCap', 0),
+                'volume': fii_data.get('volume', 0)
+            })
+            
+            # Insert historical price
+            historical_query = text("""
+                INSERT INTO historical_prices (
+                    id, fund_id, date, price, volume, created_at
+                )
+                VALUES (
+                    gen_random_uuid(), :fund_id, CURRENT_DATE, :price, :volume, NOW()
+                )
+                ON CONFLICT (fund_id, date) DO UPDATE SET
+                    price = EXCLUDED.price,
+                    volume = EXCLUDED.volume
+            """)
+            
+            db.execute(historical_query, {
+                'fund_id': fund_id,
+                'price': fii_data.get('price', 0),
+                'volume': fii_data.get('volume', 0)
+            })
+            
+            logger.info(f"✅ {ticker} updated: R$ {fii_data.get('price', 0):.2f}")
+        
+        db.commit()
+        logger.info("✅ Real-time data update completed successfully!")
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"❌ Error updating data: {e}")
+        raise
+    finally:
+        db.close()
 
 def seed_sample_data():
     """Seed database with sample FII data for MVP"""
@@ -228,8 +330,20 @@ def seed_sample_data():
         db.close()
 
 if __name__ == "__main__":
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='FIILens Analytics Engine')
+    parser.add_argument('--mode', choices=['seed', 'update'], default='update',
+                       help='Mode: seed (initial data) or update (real-time refresh)')
+    args = parser.parse_args()
+    
     try:
-        seed_sample_data()
+        if args.mode == 'seed':
+            logger.info("Running in SEED mode...")
+            seed_sample_data()
+        else:
+            logger.info("Running in UPDATE mode (real-time data)...")
+            update_real_time_data()
     except Exception as e:
         logger.error(f"Fatal error: {str(e)}")
         sys.exit(1)

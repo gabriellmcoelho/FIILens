@@ -11,6 +11,7 @@ import { glossaryRoutes } from './routes/glossary'
 import { qualityRoutes } from './routes/quality'
 import { authRoutes } from './routes/auth'
 import { healthRoutes } from './routes/health'
+import { dataRoutes } from './routes/data'
 
 const fastify = Fastify({
   logger: true
@@ -70,6 +71,7 @@ const start = async () => {
     await fastify.register(metadataRoutes, { prefix: '/api/v1/metadata' })
     await fastify.register(glossaryRoutes, { prefix: '/api/v1/glossary' })
     await fastify.register(qualityRoutes, { prefix: '/api/v1/quality' })
+    await fastify.register(dataRoutes, { prefix: '/api/v1/data' })
 
     const port = Number(process.env.PORT) || 3333
     await fastify.listen({ port, host: '0.0.0.0' })
