@@ -1,6 +1,6 @@
 """
 Real-time FII data collector
-Collects data from public APIs (Funds Explorer, B3, etc.)
+Collects data from public APIs (Yahoo Finance, Status Invest)
 """
 
 import logging
@@ -20,13 +20,12 @@ class FIIRealTimeCollector:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         })
         
-        # API endpoints (using public sources)
-        self.fundsexplorer_url = "https://www.fundsexplorer.com.br/ranking"
-        self.brapi_url = "https://brapi.dev/api/quote"
+        # Use Yahoo Finance (free, no auth required)
+        self.yahoo_base_url = "https://query1.finance.yahoo.com/v8/finance/chart"
         
     def collect_fii_data(self, tickers: List[str]) -> List[Dict]:
         """
-        Collect real-time data for specified FIIs
+        Collect real-time data for specified FIIs from Yahoo Finance
         
         Args:
             tickers: List of FII tickers (e.g., ['HGLG11', 'KNRI11'])
@@ -52,40 +51,53 @@ class FIIRealTimeCollector:
         return fiis_data
     
     def _collect_single_fii(self, ticker: str) -> Optional[Dict]:
-        """Collect data for a single FII from BRAPI"""
+        """Collect data for a single FII from Yahoo Finance"""
         try:
-            # BRAPI - Free Brazilian stocks/FIIs API
-            url = f"{self.brapi_url}/{ticker}"
-            response = self.session.get(url, timeout=10)
+            # Yahoo Finance uses .SA suffix for Brazilian stocks/FIIs
+            yahoo_ticker = f"{ticker}.SA"
+            
+            url = f"{self.yahoo_base_url}/{yahoo_ticker}"
+            params = {
+                'range': '1d',
+                'interval': '1d'
+            }
+            
+            response = self.session.get(url, params=params, timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
                 
-                if 'results' not in data or len(data['results']) == 0:
+                if 'chart' not in data or 'result' not in data['chart']:
                     logger.warning(f"No data found for {ticker}")
                     return None
                 
-                result = data['results'][0]
+                result = data['chart']['result'][0]
+                meta = result.get('meta', {})
+                quote = result.get('indicators', {}).get('quote', [{}])[0]
                 
                 # Extract real data
                 fii_data = {
                     'ticker': ticker,
-                    'name': result.get('longName', ticker),
-                    'price': result.get('regularMarketPrice', 0.0),
-                    'previousClose': result.get('regularMarketPreviousClose', 0.0),
-                    'volume': result.get('regularMarketVolume', 0),
-                    'marketCap': result.get('marketCap', 0),
-                    'change': result.get('regularMarketChange', 0.0),
-                    'changePercent': result.get('regularMarketChangePercent', 0.0),
-                    'high': result.get('regularMarketDayHigh', 0.0),
-                    'low': result.get('regularMarketDayLow', 0.0),
+                    'name': meta.get('longName', ticker),
+                    'price': meta.get('regularMarketPrice', 0.0),
+                    'previousClose': meta.get('previousClose', 0.0),
+                    'volume': quote.get('volume', [0])[0] if quote.get('volume') else 0,
+                    'marketCap': meta.get('marketCap', 0),
+                    'high': quote.get('high', [0])[0] if quote.get('high') else 0,
+                    'low': quote.get('low', [0])[0] if quote.get('low') else 0,
                     'timestamp': datetime.now().isoformat(),
-                    'source': 'BRAPI'
+                    'source': 'Yahoo Finance'
                 }
                 
-                # Calculate derived indicators
+                # Calculate change
+                if fii_data['price'] and fii_data['previousClose']:
+                    change = fii_data['price'] - fii_data['previousClose']
+                    change_percent = (change / fii_data['previousClose']) * 100
+                    fii_data['change'] = round(change, 2)
+                    fii_data['changePercent'] = round(change_percent, 2)
+                
+                # Add estimated indicators
                 if fii_data['price'] > 0:
-                    # Estimate dividend yield (will be replaced by real data later)
                     fii_data['dividendYield'] = self._estimate_dividend_yield(ticker)
                     fii_data['pvp'] = self._estimate_pvp(ticker)
                     

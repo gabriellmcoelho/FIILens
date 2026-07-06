@@ -37,8 +37,8 @@ def update_real_time_data():
             
             # Update or insert fund
             fund_query = text("""
-                INSERT INTO funds (id, ticker, name, created_at, updated_at)
-                VALUES (gen_random_uuid(), :ticker, :name, NOW(), NOW())
+                INSERT INTO funds (id, ticker, name, cnpj, segment, manager, administrator, created_at, updated_at)
+                VALUES (gen_random_uuid(), :ticker, :name, :cnpj, :segment, :manager, :administrator, NOW(), NOW())
                 ON CONFLICT (ticker) DO UPDATE 
                 SET name = EXCLUDED.name, 
                     updated_at = NOW()
@@ -47,32 +47,30 @@ def update_real_time_data():
             
             result = db.execute(fund_query, {
                 'ticker': ticker,
-                'name': fii_data.get('name', ticker)
+                'name': fii_data.get('name', ticker),
+                'cnpj': fii_data.get('cnpj', '00.000.000/0001-00'),  # Placeholder CNPJ
+                'segment': fii_data.get('segment', 'Diversos'),
+                'manager': fii_data.get('manager', 'N/A'),
+                'administrator': fii_data.get('administrator', 'N/A')
             })
             
             fund_id = result.fetchone()[0]
             
-            # Update indicators
-            indicators_query = text("""
-                INSERT INTO indicators (
-                    id, fund_id, price, dividend_yield, pvp, liquidity,
-                    market_cap, volume, created_at, updated_at
-                )
-                VALUES (
-                    gen_random_uuid(), :fund_id, :price, :dividend_yield, :pvp,
-                    :liquidity, :market_cap, :volume, NOW(), NOW()
-                )
-                ON CONFLICT (fund_id) DO UPDATE SET
-                    price = EXCLUDED.price,
-                    dividend_yield = EXCLUDED.dividend_yield,
-                    pvp = EXCLUDED.pvp,
-                    liquidity = EXCLUDED.liquidity,
-                    market_cap = EXCLUDED.market_cap,
-                    volume = EXCLUDED.volume,
-                    updated_at = NOW()
+            # Update or insert indicators
+            # First, try to update
+            update_indicators = text("""
+                UPDATE indicators
+                SET price = :price,
+                    dividend_yield = :dividend_yield,
+                    pvp = :pvp,
+                    liquidity = :liquidity,
+                    market_cap = :market_cap,
+                    volume = :volume,
+                    last_update = NOW()
+                WHERE fund_id = :fund_id
             """)
             
-            db.execute(indicators_query, {
+            result_update = db.execute(update_indicators, {
                 'fund_id': fund_id,
                 'price': fii_data.get('price', 0),
                 'dividend_yield': fii_data.get('dividendYield', 0),
@@ -82,13 +80,36 @@ def update_real_time_data():
                 'volume': fii_data.get('volume', 0)
             })
             
+            # If no rows updated, insert new
+            if result_update.rowcount == 0:
+                insert_indicators = text("""
+                    INSERT INTO indicators (
+                        id, fund_id, price, dividend_yield, pvp, liquidity,
+                        market_cap, volume, last_update
+                    )
+                    VALUES (
+                        gen_random_uuid(), :fund_id, :price, :dividend_yield, :pvp,
+                        :liquidity, :market_cap, :volume, NOW()
+                    )
+                """)
+                
+                db.execute(insert_indicators, {
+                    'fund_id': fund_id,
+                    'price': fii_data.get('price', 0),
+                    'dividend_yield': fii_data.get('dividendYield', 0),
+                    'pvp': fii_data.get('pvp', 1.0),
+                    'liquidity': fii_data.get('volume', 0),
+                    'market_cap': fii_data.get('marketCap', 0),
+                    'volume': fii_data.get('volume', 0)
+                })
+            
             # Insert historical price
             historical_query = text("""
                 INSERT INTO historical_prices (
-                    id, fund_id, date, price, volume, created_at
+                    id, fund_id, date, price, volume
                 )
                 VALUES (
-                    gen_random_uuid(), :fund_id, CURRENT_DATE, :price, :volume, NOW()
+                    gen_random_uuid(), :fund_id, CURRENT_DATE, :price, :volume
                 )
                 ON CONFLICT (fund_id, date) DO UPDATE SET
                     price = EXCLUDED.price,
