@@ -24,6 +24,7 @@
   "author": "Gabriel Coelho",
   "license": "MIT",
   "devDependencies": {
+    "@types/node": "^26.1.0",
     "concurrently": "^8.2.2"
   }
 }
