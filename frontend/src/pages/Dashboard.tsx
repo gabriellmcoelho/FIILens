@@ -22,6 +22,17 @@ export default function Dashboard() {
     queryFn: () => indicatorsApi.getRankings('dividendYield', 'desc', 5)
   })
 
+  const { data: allFundsForRanking } = useQuery({
+    queryKey: ['funds-ranking'],
+    queryFn: () => fundsApi.getAll({ limit: 100 })
+  })
+
+  // Ordenar por FIILens Score
+  const topFIILensScore = allFundsForRanking?.data
+    ?.filter((f: any) => f.qualityScore?.overallScore)
+    .sort((a: any, b: any) => b.qualityScore.overallScore - a.qualityScore.overallScore)
+    .slice(0, 5)
+
   return (
     <div className="space-y-8">
       <div>
@@ -29,6 +40,27 @@ export default function Dashboard() {
         <p className="mt-2 text-gray-600">
           Plataforma de dados sobre Fundos de Investimento Imobiliário brasileiros
         </p>
+      </div>
+
+      {/* FIILens Score Info Banner */}
+      <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-lg p-6 text-white">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center space-x-2 mb-2">
+              <span className="text-2xl">⭐</span>
+              <h3 className="text-xl font-bold">FIILens Score - Sistema Inteligente de Análise</h3>
+            </div>
+            <p className="text-blue-100 text-sm">
+              Score de 0-100 baseado em Machine Learning, avaliando 6 componentes fundamentalistas: 
+              <span className="font-semibold text-white"> Dividend Yield (25%), P/VP (20%), Liquidez (15%), Consistência de Dividendos (15%), Valorização (15%), Patrimônio (10%)</span>
+            </p>
+          </div>
+          <div className="ml-4 bg-white/20 backdrop-blur-sm rounded-lg px-4 py-3 text-center">
+            <p className="text-xs text-blue-100 mb-1">Calculado hoje</p>
+            <p className="text-2xl font-bold">{topFIILensScore?.length || 0}</p>
+            <p className="text-xs text-blue-100">FIIs analisados</p>
+          </div>
+        </div>
       </div>
 
       {/* Overview Cards */}
@@ -59,7 +91,23 @@ export default function Dashboard() {
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4">Buscar FIIs</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Buscar FIIs</h2>
+              <div className="flex items-center space-x-2 text-xs text-gray-500">
+                <span className="flex items-center">
+                  <span className="inline-block w-3 h-3 rounded-full bg-green-500 mr-1"></span>
+                  80+ Excelente
+                </span>
+                <span className="flex items-center">
+                  <span className="inline-block w-3 h-3 rounded-full bg-blue-500 mr-1"></span>
+                  70+ Bom
+                </span>
+                <span className="flex items-center">
+                  <span className="inline-block w-3 h-3 rounded-full bg-yellow-500 mr-1"></span>
+                  60+ Regular
+                </span>
+              </div>
+            </div>
             
             <div className="space-y-4">
               <input
@@ -95,32 +143,52 @@ export default function Dashboard() {
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ticker</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Segmento</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">FIILens Score</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">DY</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">P/VP</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Preço</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {fundsData?.data?.map((fund: any) => (
-                      <tr key={fund.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3">
-                          <Link to={`/fund/${fund.ticker}`} className="text-primary-600 hover:underline font-medium">
-                            {fund.ticker}
-                          </Link>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{fund.name}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{fund.segment}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {fund.indicator?.dividendYield?.toFixed(2)}%
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {fund.indicator?.pvp?.toFixed(2)}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          R$ {fund.indicator?.price?.toFixed(2)}
-                        </td>
-                      </tr>
-                    ))}
+                    {fundsData?.data?.map((fund: any) => {
+                      const score = fund.qualityScore?.overallScore || 0
+                      const scoreColor = score >= 80 ? 'bg-green-100 text-green-800 border-green-300' 
+                        : score >= 70 ? 'bg-blue-100 text-blue-800 border-blue-300'
+                        : score >= 60 ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                        : 'bg-gray-100 text-gray-800 border-gray-300'
+                      const scoreEmoji = score >= 80 ? '🏆' : score >= 70 ? '⭐' : score >= 60 ? '✓' : '⚠️'
+                      
+                      return (
+                        <tr key={fund.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3">
+                            <Link to={`/fund/${fund.ticker}`} className="text-primary-600 hover:underline font-medium">
+                              {fund.ticker}
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{fund.name}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{fund.segment}</td>
+                          <td className="px-4 py-3">
+                            {fund.qualityScore ? (
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold border ${scoreColor}`}>
+                                <span className="mr-1">{scoreEmoji}</span>
+                                {score.toFixed(0)}/100
+                              </span>
+                            ) : (
+                              <span className="text-xs text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {fund.indicator?.dividendYield?.toFixed(2)}%
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {fund.indicator?.pvp?.toFixed(2)}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            R$ {fund.indicator?.price?.toFixed(2)}
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -147,6 +215,57 @@ export default function Dashboard() {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Top FIILens Score */}
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-lg p-6 border-2 border-blue-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">🏆 Top 5 - FIILens Score</h3>
+              <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded-full">Score Inteligente</span>
+            </div>
+            {topFIILensScore && topFIILensScore.length > 0 ? (
+              <div className="space-y-3">
+                {topFIILensScore.map((fund: any, index: number) => {
+                  const score = fund.qualityScore.overallScore
+                  const scoreColor = score >= 80 ? 'bg-green-500' 
+                    : score >= 70 ? 'bg-blue-500'
+                    : score >= 60 ? 'bg-yellow-500'
+                    : 'bg-gray-500'
+                  const emoji = score >= 80 ? '🏆' : score >= 70 ? '⭐' : '✓'
+                  
+                  return (
+                    <div key={fund.ticker} className="bg-white rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-gray-100 to-gray-200">
+                            <span className="text-sm font-bold text-gray-700">#{index + 1}</span>
+                          </div>
+                          <div>
+                            <Link to={`/fund/${fund.ticker}`} className="text-primary-600 hover:underline font-semibold">
+                              {fund.ticker}
+                            </Link>
+                            <p className="text-xs text-gray-500">{fund.segment}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-lg">{emoji}</span>
+                          <div className={`px-3 py-1 rounded-full ${scoreColor} text-white font-bold text-sm`}>
+                            {score.toFixed(0)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 text-center py-4">Calculando scores...</p>
+            )}
+            <div className="mt-4 pt-3 border-t border-blue-200">
+              <p className="text-xs text-gray-600 text-center">
+                Score baseado em DY, P/VP, Liquidez, Consistência e mais
+              </p>
+            </div>
           </div>
 
           <div className="bg-primary-50 rounded-lg p-6">

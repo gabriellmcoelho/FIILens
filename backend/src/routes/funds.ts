@@ -48,6 +48,10 @@ export async function fundsRoutes(fastify: FastifyInstance) {
           indicators: {
             orderBy: { lastUpdate: 'desc' },
             take: 1
+          },
+          qualityScores: {
+            orderBy: { measuredAt: 'desc' },
+            take: 1
           }
         }
       }),
@@ -57,7 +61,8 @@ export async function fundsRoutes(fastify: FastifyInstance) {
     return {
       data: funds.map(fund => ({
         ...fund,
-        indicator: fund.indicators[0] || null
+        indicator: fund.indicators[0] || null,
+        qualityScore: fund.qualityScores[0] || null
       })),
       pagination: {
         page,
