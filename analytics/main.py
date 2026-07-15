@@ -7,12 +7,11 @@ import logging
 import sys
 from sqlalchemy import text
 from config import get_db, logger
+from config_fiis import TRACKED_FIIS
 from collectors.real_time_collector import get_collector
+from collectors.fii_collector import collect_fii_data, collect_historical_prices, collect_dividends
 from validators.data_validator import validate_data
 from quality.quality_scorer import calculate_quality_scores
-
-# FII tickers to track
-TRACKED_FIIS = ['HGLG11', 'KNRI11', 'XPML11', 'VISC11', 'PVBI11']
 
 def update_real_time_data():
     """Update FII data from real-time sources"""

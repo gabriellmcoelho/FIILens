@@ -8,52 +8,12 @@ import logging
 from typing import List, Dict
 import random
 from datetime import datetime, timedelta
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config_fiis import FIIS_DATABASE as SAMPLE_FIIS
 
 logger = logging.getLogger(__name__)
-
-# Sample FII data for MVP
-SAMPLE_FIIS = [
-    {
-        'ticker': 'HGLG11',
-        'name': 'CSHG Logística',
-        'cnpj': '28.757.546/0001-00',
-        'segment': 'Logística',
-        'manager': 'Credit Suisse Hedging-Griffo',
-        'administrator': 'Credit Suisse'
-    },
-    {
-        'ticker': 'KNRI11',
-        'name': 'Kinea Rendimentos Imobiliários',
-        'cnpj': '11.152.141/0001-52',
-        'segment': 'Híbrido',
-        'manager': 'Kinea',
-        'administrator': 'Itaú Unibanco'
-    },
-    {
-        'ticker': 'XPML11',
-        'name': 'XP Malls',
-        'cnpj': '28.757.421/0001-86',
-        'segment': 'Shopping',
-        'manager': 'XP Asset',
-        'administrator': 'XP Investimentos'
-    },
-    {
-        'ticker': 'VISC11',
-        'name': 'Vinci Shopping Centers',
-        'cnpj': '14.864.934/0001-28',
-        'segment': 'Shopping',
-        'manager': 'Vinci Partners',
-        'administrator': 'BNY Mellon'
-    },
-    {
-        'ticker': 'PVBI11',
-        'name': 'VBI Prime Properties',
-        'cnpj': '36.341.371/0001-52',
-        'segment': 'Lajes Corporativas',
-        'manager': 'VBI',
-        'administrator': 'Vórtx'
-    }
-]
 
 def collect_fii_data() -> List[Dict]:
     """

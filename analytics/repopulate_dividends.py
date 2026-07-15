@@ -11,6 +11,7 @@ from typing import List, Dict
 
 from sqlalchemy import create_engine, text
 from collectors.dividend_collector import DividendCollector
+from config_fiis import TRACKED_FIIS
 
 logging.basicConfig(
     level=logging.INFO,
@@ -24,9 +25,6 @@ if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is not set. Please set it before running this script.")
 
 engine = create_engine(DATABASE_URL)
-
-# FIIs to process
-TRACKED_FIIS = ['HGLG11', 'KNRI11', 'XPML11', 'VISC11', 'PVBI11']
 
 class DividendRepopulator:
     """Repopulate dividends table with real data"""

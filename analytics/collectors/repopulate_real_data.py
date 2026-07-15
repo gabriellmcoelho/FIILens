@@ -11,6 +11,9 @@ from datetime import datetime
 from typing import List, Dict
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config_fiis import TRACKED_FIIS
 
 load_dotenv()
 
@@ -31,8 +34,6 @@ if not DATABASE_URL:
     )
 
 engine = create_engine(DATABASE_URL)
-
-TRACKED_FIIS = ['HGLG11', 'KNRI11', 'XPML11', 'VISC11', 'PVBI11']
 
 class RealDataRepopulator:
     """Repopulate database with real historical data"""

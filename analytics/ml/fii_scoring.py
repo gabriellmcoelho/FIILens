@@ -449,8 +449,8 @@ if __name__ == '__main__':
         logger.error("DATABASE_URL not found!")
         sys.exit(1)
     
-    # FIIs sendo monitorados
-    TRACKED_FIIS = ['HGLG11', 'KNRI11', 'XPML11', 'VISC11', 'PVBI11']
+    # Import FIIs from centralized config
+    from config_fiis import TRACKED_FIIS
     
     service = FIIScoringService()
     

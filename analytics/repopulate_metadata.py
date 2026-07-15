@@ -11,6 +11,7 @@ from psycopg2.extras import RealDictCursor
 import logging
 from typing import List, Dict, Optional
 from collectors.metadata_collector import StatusInvestCollector
+from config_fiis import TRACKED_FIIS
 
 logging.basicConfig(
     level=logging.INFO,
@@ -25,9 +26,6 @@ DATABASE_URL = os.getenv('DATABASE_URL')
 if not DATABASE_URL:
     logger.error("DATABASE_URL not found in .env file!")
     sys.exit(1)
-
-# FIIs being tracked
-TRACKED_FIIS = ['HGLG11', 'KNRI11', 'XPML11', 'VISC11', 'PVBI11']
 
 
 def get_db_connection():
